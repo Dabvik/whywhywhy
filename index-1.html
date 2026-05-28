@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#080810">
+<title>Why³ — Procrastination Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg:      #080810;
+  --bg2:     #0F0F1A;
+  --bg3:     #161625;
+  --border:  #1E1E32;
+  --text:    #EEE9FF;
+  --muted:   #4A4A6A;
+  --accent:  #6C63FF;
+  --accent2: #FF6584;
+  --accent3: #43E97B;
+  --warn:    #FFB347;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; overflow: hidden; }
+
+#app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; }
+
+/* HEADER */
+header {
+  padding: 52px 20px 0;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.header-inner { display: flex; justify-content: space-between; align-items: flex-start; }
+.brand { font-family: 'Syne', sans-serif; }
+.brand-name { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.brand-name span { color: var(--accent); }
+.brand-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+
+/* streak badge */
+.streak-badge {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 8px 14px; text-align: center;
+}
+.streak-num { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--warn); line-height: 1; }
+.streak-lbl { font-size: 9px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
+
+/* TABS */
+.tabs {
+  display: flex; margin: 16px 20px 0;
+  background: var(--bg3); border-radius: 12px; padding: 4px;
+}
+.tab {
+  flex: 1; padding: 10px 4px; border-radius: 9px;
+  font-family: 'DM Sans', sans-serif; font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+  background: none; border: none; cursor: pointer; transition: all 0.2s;
+}
+.tab.active { background: var(--accent); color: #fff; font-weight: 500; }
+
+/* MAIN */
+main {
+  flex: 1; overflow-y: auto; padding: 20px;
+  -webkit-overflow-scrolling: touch;
+}
+main::-webkit-scrollbar { display: none; }
+
+/* ADD BOX */
+.add-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 16px; padding: 16px; margin-bottom: 20px;
+}
+.add-label {
+  font-size: 10px; color: var(--muted); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 10px;
+}
+.add-row { display: flex; gap: 10px; }
+.reason-input {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 14px; padding: 12px 14px; outline: none; resize: none;
+  min-height: 48px; max-height: 120px; line-height: 1.5;
+  transition: border-color 0.2s;
+}
+.reason-input:focus { border-color: var(--accent); }
+.reason-input::placeholder { color: var(--muted); }
+.add-btn {
+  width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+  background: var(--accent); border: none; color: #fff;
+  font-size: 24px; cursor: pointer; transition: transform 0.1s;
+  display: flex; align-items: center; justify-content: center;
+}
+.add-btn:active { transform: scale(0.92); }
+
+/* QUICK TAGS */
+.quick-label { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin: 12px 0 8px; }
+.quick-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.qtag {
+  padding: 7px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg2);
+  color: var(--muted); font-size: 12px; cursor: pointer;
+  transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+}
+.qtag:active { background: var(--accent); border-color: var(--accent); color: #fff; transform: scale(0.96); }
+
+/* SECTION HEADER */
+.sec-hd {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 10px; color: var(--muted); letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.sec-badge {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 20px; padding: 2px 9px; font-size: 10px;
+}
+
+/* REASON CARD */
+.reason-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 14px 16px;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+  animation: fadeUp 0.25s ease; transition: border-color 0.2s;
+  position: relative; overflow: hidden;
+}
+.reason-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 0;
+}
+.reason-card.rank-1::before { background: var(--accent2); }
+.reason-card.rank-2::before { background: var(--warn); }
+.reason-card.rank-3::before { background: var(--accent); }
+.reason-card.rank-other::before { background: var(--border); }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+.rank-num {
+  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+  color: var(--muted); min-width: 28px; text-align: center; flex-shrink: 0;
+}
+.rank-num.top { color: var(--accent2); }
+
+.reason-info { flex: 1; min-width: 0; }
+.reason-text { font-size: 14px; color: var(--text); line-height: 1.4; word-break: break-word; }
+.reason-meta { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.reason-last { font-size: 10px; color: var(--muted); }
+
+/* count bar */
+.count-bar-wrap { margin-top: 6px; }
+.count-bar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.count-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+
+.count-bubble {
+  min-width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800;
+  flex-shrink: 0; cursor: pointer; transition: transform 0.1s;
+}
+.count-bubble:active { transform: scale(0.88); }
+
+.del-btn {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  background: none; border: 1px solid transparent;
+  color: var(--muted); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.del-btn:active { background: #FF658420; border-color: var(--accent2); color: var(--accent2); }
+
+/* INSIGHTS */
+.insight-card {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px; margin-bottom: 12px;
+}
+.insight-title {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--text); margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.top3-list { display: flex; flex-direction: column; gap: 10px; }
+.top3-item { display: flex; align-items: center; gap: 12px; }
+.top3-rank {
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 800;
+  width: 22px; text-align: center;
+}
+.top3-bar-wrap { flex: 1; }
+.top3-label { font-size: 12px; color: var(--text); margin-bottom: 4px; line-height: 1.3; }
+.top3-track { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.top3-fill { height: 100%; border-radius: 3px; }
+.top3-count { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; min-width: 28px; text-align: right; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.stat-box {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px;
+}
+.stat-lbl { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-val { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; }
+.stat-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* FILTER BAR */
+.filter-bar { display: flex; gap: 7px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 2px; }
+.filter-bar::-webkit-scrollbar { display: none; }
+.fbtn {
+  padding: 7px 14px; border-radius: 20px; white-space: nowrap;
+  border: 1px solid var(--border); background: none;
+  color: var(--muted); font-size: 11px; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.fbtn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* LOG */
+.log-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.log-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); flex-shrink: 0; margin-top: 5px;
+}
+.log-text { font-size: 13px; color: var(--text); flex: 1; line-height: 1.5; }
+.log-time { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.log-tag {
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  background: var(--accent)22; color: var(--accent); margin-top: 3px; display: inline-block;
+}
+
+/* EMPTY */
+.empty { text-align: center; padding: 60px 20px; color: var(--muted); line-height: 2; font-size: 13px; }
+.empty-icon { font-size: 52px; margin-bottom: 12px; }
+
+/* CLEAR BTN */
+.danger-btn {
+  width: 100%; padding: 14px; border-radius: 12px; margin-top: 8px;
+  background: none; border: 1px solid #FF658430;
+  color: var(--accent2); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; cursor: pointer; transition: all 0.2s;
+}
+.danger-btn:active { background: #FF658420; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  left: 50%; transform: translateX(-50%) translateY(16px);
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); padding: 10px 20px; border-radius: 20px;
+  font-size: 12px; opacity: 0; pointer-events: none;
+  transition: all 0.3s; z-index: 999; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.bottom-pad { height: calc(24px + env(safe-area-inset-bottom, 0px)); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-name">Why<span>³</span></div>
+        <div class="brand-sub">Procrastination Patterns</div>
+      </div>
+      <div class="streak-badge">
+        <div class="streak-num" id="totalCount">0</div>
+        <div class="streak-lbl">Total Logs</div>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('log')" id="tab-log">Log</button>
+      <button class="tab" onclick="showTab('patterns')" id="tab-patterns">Patterns</button>
+      <button class="tab" onclick="showTab('insights')" id="tab-insights">Insights</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+  <div class="bottom-pad"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════
+   STATE
+═══════════════════════════ */
+const QUICK = [
+  "😴 Too tired", "📱 Got distracted", "😰 Felt overwhelmed",
+  "❓ Wasn't clear", "🔊 Too noisy", "😔 Low motivation",
+  "🕐 Ran out of time", "🤯 Too many tasks", "😓 Stressed",
+  "📵 No internet", "👥 Interrupted", "😪 Procrastinated"
+];
+
+const COLORS = ['#FF6584','#FFB347','#6C63FF','#43E97B','#38B2F8','#F093FB','#4FACFE','#FA709A'];
+
+let state = load();
+
+function def() {
+  return { reasons: [], log: [], nextId: 1 };
+  // reasons: [{ id, text, count, color, lastLogged }]
+  // log: [{ id, reasonId, reasonText, ts }]
+}
+
+function load() {
+  try { const s = localStorage.getItem('whywhywhy'); return s ? { ...def(), ...JSON.parse(s) } : def(); }
+  catch { return def(); }
+}
+
+function save() { localStorage.setItem('whywhywhy', JSON.stringify(state)); }
+
+/* ═══════════════════════════
+   TABS
+═══════════════════════════ */
+let tab = 'log';
+
+function showTab(t) {
+  tab = t;
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + t)?.classList.add('active');
+  renderMain();
+}
+
+/* ═══════════════════════════
+   RENDER DISPATCH
+═══════════════════════════ */
+function render() {
+  document.getElementById('totalCount').textContent = state.log.length;
+  renderMain();
+}
+
+function renderMain() {
+  const m = document.getElementById('main');
+  if (tab === 'log') m.innerHTML = renderLog();
+  else if (tab === 'patterns') m.innerHTML = renderPatterns();
+  else m.innerHTML = renderInsights();
+  bindQuickTags();
+}
+
+/* ═══════════════════════════
+   LOG TAB
+═══════════════════════════ */
+function renderLog() {
+  const recent = [...state.log].reverse().slice(0, 30);
+  return `
+    <div class="add-box">
+      <div class="add-label">Why didn't you finish?</div>
+      <div class="add-row">
+        <textarea class="reason-input" id="reasonInput"
+          placeholder="e.g. Got distracted by phone, felt too tired…"
+          rows="2"
+          onkeydown="handleKey(event)"></textarea>
+        <button class="add-btn" onclick="addReason()">+</button>
+      </div>
+      <div class="quick-label">Quick add</div>
+      <div class="quick-tags" id="quickTags">
+        ${QUICK.map(q => `<div class="qtag" data-q="${escH(q)}">${q}</div>`).join('')}
+      </div>
+    </div>
+
+    ${recent.length === 0 ? `
+      <div class="empty">
+        <div class="empty-icon">🤔</div>
+        No entries yet.<br>Start logging why you<br>didn't complete tasks.
+      </div>
+    ` : `
+      <div class="sec-hd">
+        <span>Recent Entries</span>
+        <span class="sec-badge">${state.log.length} total</span>
+      </div>
+      ${recent.map(l => `
+        <div class="log-item">
+          <div class="log-dot" style="background:${colorFor(l.reasonId)}"></div>
+          <div>
+            <div class="log-text">${escH(l.reasonText)}</div>
+            <div class="log-time">${fmtDate(l.ts)}</div>
+          </div>
+        </div>
+      `).join('')}
+    `}
+  `;
+}
+
+/* ═══════════════════════════
+   PATTERNS TAB
+═══════════════════════════ */
+let filterPeriod = 'all';
+
+function renderPatterns() {
+  const sorted = getSorted(filterPeriod);
+  const max = sorted[0]?.count || 1;
+
+  return `
+    <div class="filter-bar">
+      ${[['all','All Time'],['week','This Week'],['month','This Month']].map(([v,l]) =>
+        `<button class="fbtn ${filterPeriod===v?'active':''}" onclick="setFilter('${v}')">${l}</button>`
+      ).join('')}
+    </div>
+
+    ${sorted.length === 0 ? `
+      <div class="empty">
+        <div class="empty-icon">📊</div>
+        No patterns yet.<br>Log a few reasons first.
+      </div>
+    ` : `
+      <div class="sec-hd">
+        <span>Your Blockers</span>
+        <span class="sec-badge">${sorted.length} reasons</span>
+      </div>
+      ${sorted.map((r, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+        const pct = Math.round((r.count / max) * 100);
+        return `
+          <div class="reason-card ${rankClass}">
+            <div class="rank-num ${rank<=3?'top':''}">${rank<=3?['🥇','🥈','🥉'][rank-1]:rank}</div>
+            <div class="reason-info">
+              <div class="reason-text">${escH(r.text)}</div>
+              <div class="reason-meta">
+                <span class="reason-last">Last: ${r.lastLogged ? fmtDate(r.lastLogged) : '—'}</span>
+              </div>
+              <div class="count-bar-wrap">
+                <div class="count-bar-track">
+                  <div class="count-bar-fill" style="width:${pct}%;background:${r.color}"></div>
+                </div>
+              </div>
+            </div>
+            <div class="count-bubble" style="background:${r.color}22;color:${r.color}"
+              onclick="bumpReason(${r.id})" title="Tap to add one more">
+              ${r.count}
+            </div>
+            <button class="del-btn" onclick="deleteReason(${r.id})">×</button>
+          </div>
+        `;
+      }).join('')}
+    `}
+  `;
+}
+
+/* ═══════════════════════════
+   INSIGHTS TAB
+═══════════════════════════ */
+function renderInsights() {
+  const all = getSorted('all');
+  const week = getSorted('week');
+  const month = getSorted('month');
+  const totalLogs = state.log.length;
+  const topAll = all[0];
+  const topWeek = week[0];
+  const weekCount = week.reduce((s,r) => s + r.count, 0);
+  const monthCount = month.reduce((s,r) => s + r.count, 0);
+  const maxAll = all[0]?.count || 1;
+
+  return `
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-lbl">Total Logs</div>
+        <div class="stat-val">${totalLogs}</div>
+        <div class="stat-sub">all time</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">This Week</div>
+        <div class="stat-val">${weekCount}</div>
+        <div class="stat-sub">entries</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">Unique Reasons</div>
+        <div class="stat-val">${state.reasons.length}</div>
+        <div class="stat-sub">tracked</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-lbl">This Month</div>
+        <div class="stat-val">${monthCount}</div>
+        <div class="stat-sub">entries</div>
+      </div>
+    </div>
+
+    ${topAll ? `
+    <div class="insight-card">
+      <div class="insight-title">🔥 Biggest Blocker (All Time)</div>
+      <div style="font-size:18px;font-weight:700;color:var(--accent2);line-height:1.3">${escH(topAll.text)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">Happened <strong style="color:var(--text)">${topAll.count}×</strong> — this is your #1 area to fix.</div>
+    </div>
+    ` : ''}
+
+    ${topWeek ? `
+    <div class="insight-card">
+      <div class="insight-title">📅 This Week's Top Blocker</div>
+      <div style="font-size:16px;font-weight:600;color:var(--warn);line-height:1.3">${escH(topWeek.text)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px">${topWeek.count}× this week</div>
+    </div>
+    ` : ''}
+
+    ${all.length >= 3 ? `
+    <div class="insight-card">
+      <div class="insight-title">📊 Top 5 Patterns</div>
+      <div class="top3-list">
+        ${all.slice(0,5).map((r,i) => `
+          <div class="top3-item">
+            <div class="top3-rank" style="color:${r.color}">${i+1}</div>
+            <div class="top3-bar-wrap">
+              <div class="top3-label">${escH(r.text)}</div>
+              <div class="top3-track">
+                <div class="top3-fill" style="width:${Math.round(r.count/maxAll*100)}%;background:${r.color}"></div>
+              </div>
+            </div>
+            <div class="top3-count" style="color:${r.color}">${r.count}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    ${all.length > 0 ? `
+    <div class="insight-card">
+      <div class="insight-title">💡 Root Cause Focus</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.8">
+        ${generateAdvice(all)}
+      </div>
+    </div>
+    ` : `
+      <div class="empty">
+        <div class="empty-icon">💡</div>
+        Log at least 5 reasons<br>to see patterns and advice.
+      </div>
+    `}
+
+    <button class="danger-btn" onclick="clearAll()">🗑 Clear All Data</button>
+  `;
+}
+
+function generateAdvice(sorted) {
+  const top = sorted[0];
+  if (!top) return 'Keep logging to see advice.';
+  const t = top.text.toLowerCase();
+  if (t.includes('tired') || t.includes('energy') || t.includes('sleep'))
+    return `Your #1 blocker is <strong style="color:var(--text)">energy</strong>. Try scheduling deep work right after sleep or a meal — not at the end of the day.`;
+  if (t.includes('distract') || t.includes('phone') || t.includes('social'))
+    return `Your #1 blocker is <strong style="color:var(--text)">distraction</strong>. Put your phone in another room or use Focus Mode on your S23 during sprints.`;
+  if (t.includes('overwhelm') || t.includes('too many') || t.includes('stress'))
+    return `Your #1 blocker is <strong style="color:var(--text)">overwhelm</strong>. Break tasks into smaller pieces. One task at a time — don't plan more than 3 things per sprint.`;
+  if (t.includes('time') || t.includes('late') || t.includes('ran out'))
+    return `Your #1 blocker is <strong style="color:var(--text)">time estimation</strong>. Your tasks may be too large. Try cutting task size in half when planning.`;
+  if (t.includes('motivat') || t.includes('lazy') || t.includes('mood'))
+    return `Your #1 blocker is <strong style="color:var(--text)">motivation</strong>. Start with the easiest task first to build momentum — don't wait for the mood to show up.`;
+  if (t.includes('clear') || t.includes('confus') || t.includes("know"))
+    return `Your #1 blocker is <strong style="color:var(--text)">clarity</strong>. Before a sprint, write exactly what "done" looks like for each task.`;
+  if (t.includes('interrupt') || t.includes('people') || t.includes('noise'))
+    return `Your #1 blocker is <strong style="color:var(--text)">interruptions</strong>. Set a "do not disturb" window. Tell people around you your sprint hours.`;
+  return `Your top blocker is <strong style="color:var(--text)">"${top.text}"</strong> with ${top.count} occurrences. Focus on addressing this one root cause first — it will have the highest impact.`;
+}
+
+/* ═══════════════════════════
+   ACTIONS
+═══════════════════════════ */
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addReason(); }
+}
+
+function addReason(text) {
+  const inp = document.getElementById('reasonInput');
+  const raw = text || inp?.value?.trim();
+  if (!raw) return;
+
+  // find existing reason (case-insensitive match)
+  let r = state.reasons.find(x => x.text.toLowerCase() === raw.toLowerCase());
+
+  if (!r) {
+    // new reason
+    const colorIdx = state.reasons.length % COLORS.length;
+    r = {
+      id: state.nextId++,
+      text: raw,
+      count: 0,
+      color: COLORS[colorIdx],
+      lastLogged: null,
+    };
+    state.reasons.push(r);
+  }
+
+  // increment
+  r.count++;
+  r.lastLogged = new Date().toISOString();
+
+  // add to log
+  state.log.push({
+    id: state.nextId++,
+    reasonId: r.id,
+    reasonText: r.text,
+    ts: new Date().toISOString(),
+  });
+
+  save();
+  if (inp) inp.value = '';
+  render();
+  showToast(`"${raw.slice(0,30)}" — count: ${r.count}`);
+}
+
+function bumpReason(id) {
+  const r = state.reasons.find(x => x.id === id);
+  if (!r) return;
+  r.count++;
+  r.lastLogged = new Date().toISOString();
+  state.log.push({ id: state.nextId++, reasonId: r.id, reasonText: r.text, ts: new Date().toISOString() });
+  save();
+  render();
+  showToast(`+1 → "${r.text.slice(0,25)}" now ${r.count}×`);
+}
+
+function deleteReason(id) {
+  state.reasons = state.reasons.filter(x => x.id !== id);
+  state.log = state.log.filter(x => x.reasonId !== id);
+  save();
+  render();
+  showToast('Reason removed');
+}
+
+function setFilter(p) {
+  filterPeriod = p;
+  renderMain();
+}
+
+function clearAll() {
+  if (!confirm('Clear all data? This cannot be undone.')) return;
+  state = def();
+  save();
+  render();
+  showToast('All data cleared');
+}
+
+/* ═══════════════════════════
+   HELPERS
+═══════════════════════════ */
+function getSorted(period) {
+  if (period === 'all') {
+    return [...state.reasons].sort((a,b) => b.count - a.count);
+  }
+
+  const now = Date.now();
+  const cutoff = period === 'week'
+    ? now - 7 * 86400000
+    : now - 30 * 86400000;
+
+  // Count per reason within period
+  const counts = {};
+  state.log.forEach(l => {
+    if (new Date(l.ts).getTime() >= cutoff) {
+      counts[l.reasonId] = (counts[l.reasonId] || 0) + 1;
+    }
+  });
+
+  return state.reasons
+    .filter(r => counts[r.id] > 0)
+    .map(r => ({ ...r, count: counts[r.id] || 0 }))
+    .sort((a,b) => b.count - a.count);
+}
+
+function colorFor(reasonId) {
+  return state.reasons.find(r => r.id === reasonId)?.color || 'var(--accent)';
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  if (diff < 604800000) return `${Math.floor(diff/86400000)}d ago`;
+  return d.toLocaleDateString([], { day:'numeric', month:'short' });
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function bindQuickTags() {
+  document.querySelectorAll('.qtag').forEach(el => {
+    el.addEventListener('click', () => addReason(el.dataset.q));
+  });
+}
+
+/* ═══════════════════════════
+   TOAST
+═══════════════════════════ */
+let toastT;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+/* ═══════════════════════════
+   INIT
+═══════════════════════════ */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+render();
+</script>
+</body>
+</html>
